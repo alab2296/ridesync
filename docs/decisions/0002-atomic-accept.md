@@ -1,4 +1,5 @@
 # ADR 0002: Atomic database update for ride assignment
+
 Status: Accepted
 Context: Two drivers can accept the same ride at once.
 Decision: Offer to one driver at a time, and make accept a single conditional UPDATE (`WHERE status='SEARCHING'`). Add a partial unique index so a driver cannot hold two active rides.
