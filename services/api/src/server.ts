@@ -1,8 +1,18 @@
 import { buildApp } from "./app.js";
+import { PgUserRepository } from "./auth/pgUsers.js";
+import { InMemoryUserRepository } from "./auth/users.js";
 import { loadConfig } from "./config.js";
+import { createPool, migrate } from "./db/migrate.js";
 
 const config = loadConfig();
-const app = buildApp(config);
+
+// With a database configured, accounts are stored in Postgres. Without one the
+// server still starts, but accounts are lost on restart.
+const pool = config.DATABASE_URL ? createPool(config.DATABASE_URL) : undefined;
+if (pool) await migrate(pool);
+const users = pool ? new PgUserRepository(pool) : new InMemoryUserRepository();
+
+const app = buildApp(config, { users });
 
 try {
   await app.listen({ port: config.PORT, host: config.HOST });
@@ -14,6 +24,9 @@ try {
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
     app.log.info({ signal }, "shutting down");
-    app.close().then(() => process.exit(0));
+    app
+      .close()
+      .then(() => pool?.end())
+      .then(() => process.exit(0));
   });
 }
