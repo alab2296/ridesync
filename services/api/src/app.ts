@@ -4,9 +4,13 @@ import { authRoutes } from "./auth/routes.js";
 import { InMemoryUserRepository, type UserRepository } from "./auth/users.js";
 import type { Config } from "./config.js";
 import { errorHandler } from "./errors.js";
+import { rideRoutes } from "./rides/routes.js";
+import type { RideRepository } from "./rides/repository.js";
 
 interface Deps {
   users: UserRepository;
+  /** Rides need the database, so the ride routes only exist when this is given. */
+  rides?: RideRepository;
 }
 
 export function buildApp(
@@ -24,6 +28,7 @@ export function buildApp(
   }));
 
   app.register(authRoutes, { prefix: "/auth", users: deps.users });
+  if (deps.rides) app.register(rideRoutes, { prefix: "/rides", rides: deps.rides });
 
   return app;
 }
