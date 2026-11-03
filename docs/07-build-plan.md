@@ -1,6 +1,6 @@
-# Build plan (4 days)
+# Build plan
 
-Scope: backend, tests and admin web. The passenger and driver mobile apps are a later phase (see the backlog).
+Scope: backend, tests and admin web, built at a normal working pace (about one small item per working day, so roughly 4 to 5 weeks). There is no deadline; quality and understanding matter more than speed. The passenger and driver mobile apps are a later phase (see the backlog).
 
 How to read this:
 
@@ -8,7 +8,7 @@ How to read this:
 - **Routine** items are small and well understood, and can be done on their own.
 - One item = one branch = one pull request. Tick the box when it is merged.
 
-## Day 1: rides core (M2)
+## Phase 1: rides core (M2)
 
 - [x] Auth: register, login, JWT and role guards (Routine)
 - [x] Database schema and migrations: users, drivers, rides, ride_offers (Routine)
@@ -19,21 +19,21 @@ How to read this:
 - [ ] Offers with a timeout, and decline (Live)
 - [ ] Cancel, start and complete a ride (Routine)
 
-## Day 2: live location (M3)
+## Phase 2: live location (M3)
 
 - [ ] WebSocket gateway with JWT auth (Live)
 - [ ] Driver location ingest and the Redis geo index (Live)
 - [ ] Nearby-driver search used by the matcher (Live)
 - [ ] Passenger live stream: `driver_location` and `ride_status` events (Routine)
 
-## Day 3: proof (M4)
+## Phase 3: proof (M4)
 
 - [ ] Simulator for 250 drivers sending a location every 3 seconds (Routine)
 - [ ] Native arm64 PostGIS image for local runs (Routine)
 - [ ] k6 load test, with the results table in the README (Routine)
 - [ ] Tag `v0.1.0`
 
-## Day 4: admin and polish (M6, web only)
+## Phase 4: admin and polish (M6, web only)
 
 - [ ] Admin endpoints: `GET /admin/drivers`, `GET /admin/rides` (Routine)
 - [ ] Admin web with Vite and React: trips list (Routine)
