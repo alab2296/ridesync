@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { AppError } from "../errors.js";
+import { parse } from "../validate.js";
 import { requireAuth } from "./guard.js";
 import { hashPassword, verifyPassword } from "./password.js";
 import { EmailTakenError, type User, type UserRepository } from "./users.js";
@@ -20,16 +21,6 @@ const loginBody = z.object({
 
 // Checked when the email is unknown, so "no such user" takes as long as "wrong password".
 const dummyHash = hashPassword("not-a-real-password");
-
-function parse<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, body: unknown): T {
-  const result = schema.safeParse(body);
-  if (!result.success) {
-    const first = result.error.issues[0];
-    const where = first?.path.join(".") || "body";
-    throw new AppError(400, "VALIDATION_ERROR", `${where}: ${first?.message ?? "invalid"}`);
-  }
-  return result.data;
-}
 
 function publicUser(user: User) {
   return { id: user.id, role: user.role, name: user.name, email: user.email };
