@@ -20,7 +20,7 @@ Each one will be backed by an automated test or a load-test result in this repo.
 - [API outline](docs/04-api-outline.md)
 - [Backlog and milestones](docs/05-backlog.md)
 - [Engineering process](docs/06-engineering-process.md)
-- [Build plan (4 days)](docs/07-build-plan.md)
+- [Build plan](docs/07-build-plan.md)
 - [Decisions (ADRs)](docs/decisions/)
 
 ## How to run
