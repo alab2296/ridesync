@@ -11,7 +11,7 @@ How to read this:
 ## Day 1: rides core (M2)
 
 - [x] Auth: register, login, JWT and role guards (Routine)
-- [ ] Database schema and migrations: users, drivers, rides, ride_offers (Routine)
+- [x] Database schema and migrations: users, drivers, rides, ride_offers (Routine)
 - [ ] Postgres user repository, replacing the in-memory one (Routine)
 - [ ] Request a ride and read its status: `POST /rides`, `GET /rides/:id` (Live)
 - [ ] Driver online and offline: `POST /driver/online`, `POST /driver/offline` (Routine)
