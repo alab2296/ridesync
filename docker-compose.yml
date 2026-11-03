@@ -24,6 +24,7 @@ services:
       dockerfile: services/api/Dockerfile
     environment:
       PORT: 3000
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       DATABASE_URL: postgres://ridesync:ridesync@db:5432/ridesync
       REDIS_URL: redis://redis:6379
     ports: ["3000:3000"]
