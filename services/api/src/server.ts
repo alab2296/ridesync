@@ -3,6 +3,7 @@ import { PgUserRepository } from "./auth/pgUsers.js";
 import { InMemoryUserRepository } from "./auth/users.js";
 import { loadConfig } from "./config.js";
 import { createPool, migrate } from "./db/migrate.js";
+import { PgDriverRepository } from "./drivers/repository.js";
 import { PgRideRepository } from "./rides/repository.js";
 
 const config = loadConfig();
@@ -13,7 +14,11 @@ const pool = config.DATABASE_URL ? createPool(config.DATABASE_URL) : undefined;
 if (pool) await migrate(pool);
 const users = pool ? new PgUserRepository(pool) : new InMemoryUserRepository();
 
-const app = buildApp(config, { users, rides: pool ? new PgRideRepository(pool) : undefined });
+const app = buildApp(config, {
+  users,
+  rides: pool ? new PgRideRepository(pool) : undefined,
+  drivers: pool ? new PgDriverRepository(pool) : undefined,
+});
 
 try {
   await app.listen({ port: config.PORT, host: config.HOST });

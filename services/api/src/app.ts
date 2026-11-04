@@ -3,6 +3,8 @@ import fastifyJwt from "@fastify/jwt";
 import { authRoutes } from "./auth/routes.js";
 import { InMemoryUserRepository, type UserRepository } from "./auth/users.js";
 import type { Config } from "./config.js";
+import { driverRoutes } from "./drivers/routes.js";
+import type { DriverRepository } from "./drivers/repository.js";
 import { errorHandler } from "./errors.js";
 import { rideRoutes } from "./rides/routes.js";
 import type { RideRepository } from "./rides/repository.js";
@@ -11,6 +13,8 @@ interface Deps {
   users: UserRepository;
   /** Rides need the database, so the ride routes only exist when this is given. */
   rides?: RideRepository;
+  /** Driver availability also needs the database. */
+  drivers?: DriverRepository;
 }
 
 export function buildApp(
@@ -29,6 +33,8 @@ export function buildApp(
 
   app.register(authRoutes, { prefix: "/auth", users: deps.users });
   if (deps.rides) app.register(rideRoutes, { prefix: "/rides", rides: deps.rides });
+
+  if (deps.drivers) app.register(driverRoutes, { prefix: "/driver", drivers: deps.drivers });
 
   return app;
 }
