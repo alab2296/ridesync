@@ -15,7 +15,7 @@ How to read this:
 - [x] Postgres user repository, replacing the in-memory one (Routine)
 - [x] Request a ride and read its status: `POST /rides`, `GET /rides/:id` (Live)
 - [x] Driver online and offline: `POST /driver/online`, `POST /driver/offline` (Routine)
-- [ ] Atomic accept with the concurrency test: `POST /rides/:id/accept` (Live)
+- [x] Atomic accept with the concurrency test: `POST /rides/:id/accept` (Live)
 - [ ] Offers with a timeout, and decline (Live)
 - [ ] Cancel, start and complete a ride (Routine)
 
