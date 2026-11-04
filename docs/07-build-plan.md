@@ -14,7 +14,7 @@ How to read this:
 - [x] Database schema and migrations: users, drivers, rides, ride_offers (Routine)
 - [x] Postgres user repository, replacing the in-memory one (Routine)
 - [x] Request a ride and read its status: `POST /rides`, `GET /rides/:id` (Live)
-- [ ] Driver online and offline: `POST /driver/online`, `POST /driver/offline` (Routine)
+- [x] Driver online and offline: `POST /driver/online`, `POST /driver/offline` (Routine)
 - [ ] Atomic accept with the concurrency test: `POST /rides/:id/accept` (Live)
 - [ ] Offers with a timeout, and decline (Live)
 - [ ] Cancel, start and complete a ride (Routine)
