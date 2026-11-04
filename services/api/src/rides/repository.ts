@@ -27,10 +27,35 @@ export class ActiveRideExistsError extends Error {
   }
 }
 
+export class RideNotFoundError extends Error {
+  constructor() {
+    super("Ride not found");
+  }
+}
+
+/** Someone else got the ride first, or it is no longer waiting for a driver. */
+export class RideTakenError extends Error {
+  constructor() {
+    super("Ride is no longer available");
+  }
+}
+
+/** The driver is offline, or already busy with another ride. */
+export class DriverNotAvailableError extends Error {
+  constructor() {
+    super("Driver is not available");
+  }
+}
+
 export interface RideRepository {
   /** Throws ActiveRideExistsError if the passenger already has an active ride. */
   create(input: { passengerId: string; pickup: LatLng; dropoff: LatLng }): Promise<Ride>;
   findById(id: string): Promise<Ride | undefined>;
+  /**
+   * A driver takes a ride that is still SEARCHING. When several drivers try at
+   * once, exactly one succeeds and the rest get RideTakenError.
+   */
+  accept(rideId: string, driverId: string): Promise<Ride>;
 }
 
 interface RideRow {
@@ -98,5 +123,44 @@ export class PgRideRepository implements RideRepository {
       id,
     ]);
     return rows[0] && toRide(rows[0]);
+  }
+
+  async accept(rideId: string, driverId: string): Promise<Ride> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("begin");
+
+      // The driver must be online. This also marks them busy, and it makes a
+      // second accept by the same driver wait until this one has finished.
+      const driver = await client.query(
+        "update drivers set status = 'busy' where user_id = $1 and status = 'online'",
+        [driverId],
+      );
+      if (driver.rowCount === 0) throw new DriverNotAvailableError();
+
+      // The single conditional update that decides the winner (ADR 0002). The
+      // database lets one update through and the others find the ride no
+      // longer SEARCHING.
+      const { rows } = await client.query<RideRow>(
+        `update rides set driver_id = $2, status = 'ASSIGNED', assigned_at = now()
+         where id = $1 and status = 'SEARCHING'
+         returning ${columns}`,
+        [rideId, driverId],
+      );
+      if (!rows[0]) {
+        const exists = await client.query("select 1 from rides where id = $1", [rideId]);
+        throw exists.rowCount ? new RideTakenError() : new RideNotFoundError();
+      }
+
+      await client.query("commit");
+      return toRide(rows[0]);
+    } catch (err) {
+      await client.query("rollback");
+      // Backstop: the unique index says a driver cannot hold two active rides.
+      if ((err as { code?: string }).code === "23505") throw new DriverNotAvailableError();
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 }
