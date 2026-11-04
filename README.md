@@ -1,7 +1,7 @@
 # RideSync
 
 Real-time taxi-hailing platform: passenger app, driver app, admin web, Node.js backend.
-**Status:** M1 foundations done (API skeleton, tooling, CI). Next: M2 rides core. Portfolio project, not production software.
+**Status:** M2 rides core in progress. Done so far: API skeleton, tooling, CI, accounts with roles, database schema, ride requests. Next: driver availability and accepting rides. Portfolio project, not production software.
 
 ## Problems this project demonstrates
 
