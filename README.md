@@ -5,7 +5,7 @@ Real-time taxi-hailing platform: passenger app, driver app, admin web, Node.js b
 
 ## Problems this project demonstrates
 
-1. Preventing double booking when two drivers accept the same ride at once.
+1. Preventing double booking when two drivers accept the same ride at once. Proven by `services/api/test/accept.test.ts`: 20 drivers race for one ride, ten rounds, and exactly one ever wins.
 2. Reliable background location on iOS and Android.
 3. A backend that handles 250 drivers sending a location every 3 seconds.
 

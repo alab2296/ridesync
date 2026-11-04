@@ -4,8 +4,8 @@ import pg from "pg";
 const migrationsDir = new URL("../../migrations/", import.meta.url);
 const LOCK_ID = 727274;
 
-export function createPool(connectionString: string, options?: string): pg.Pool {
-  return new pg.Pool({ connectionString, options });
+export function createPool(connectionString: string, options?: string, max?: number): pg.Pool {
+  return new pg.Pool({ connectionString, options, max });
 }
 
 /** Runs every .sql file in migrations/ that has not run yet, in name order. */
