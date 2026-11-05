@@ -8,6 +8,7 @@ import type { DriverRepository } from "./drivers/repository.js";
 import { errorHandler } from "./errors.js";
 import { rideRoutes } from "./rides/routes.js";
 import type { RideRepository } from "./rides/repository.js";
+import type { OfferRepository } from "./rides/offers.js";
 
 interface Deps {
   users: UserRepository;
@@ -15,6 +16,8 @@ interface Deps {
   rides?: RideRepository;
   /** Driver availability also needs the database. */
   drivers?: DriverRepository;
+  /** Ride offers (decline) also need the database. */
+  offers?: OfferRepository;
 }
 
 export function buildApp(
@@ -32,7 +35,8 @@ export function buildApp(
   }));
 
   app.register(authRoutes, { prefix: "/auth", users: deps.users });
-  if (deps.rides) app.register(rideRoutes, { prefix: "/rides", rides: deps.rides });
+  if (deps.rides)
+    app.register(rideRoutes, { prefix: "/rides", rides: deps.rides, offers: deps.offers });
 
   if (deps.drivers) app.register(driverRoutes, { prefix: "/driver", drivers: deps.drivers });
 

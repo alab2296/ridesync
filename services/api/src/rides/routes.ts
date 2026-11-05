@@ -11,6 +11,7 @@ import {
   type Ride,
   type RideRepository,
 } from "./repository.js";
+import { OfferNotFoundError, type OfferRepository } from "./offers.js";
 
 const place = z.object({
   lat: z.number().min(-90).max(90),
@@ -36,9 +37,9 @@ function publicRide(ride: Ride) {
 
 export async function rideRoutes(
   app: FastifyInstance,
-  opts: { rides: RideRepository },
+  opts: { rides: RideRepository; offers?: OfferRepository },
 ): Promise<void> {
-  const { rides } = opts;
+  const { rides, offers } = opts;
 
   app.post("/", { preHandler: requireRole("passenger") }, async (request, reply) => {
     const body = parse(createRideBody, request.body);
@@ -89,4 +90,19 @@ export async function rideRoutes(
       throw err;
     }
   });
+
+  if (offers) {
+    app.post("/:id/decline", { preHandler: requireRole("driver") }, async (request) => {
+      const { id } = parse(rideParams, request.params);
+      try {
+        const offer = await offers.decline(id, request.user.sub);
+        return { offer: { rideId: offer.rideId, result: offer.result } };
+      } catch (err) {
+        if (err instanceof OfferNotFoundError) {
+          throw new AppError(404, "OFFER_NOT_FOUND", "You have no open offer for this ride");
+        }
+        throw err;
+      }
+    });
+  }
 }

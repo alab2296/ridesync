@@ -4,6 +4,7 @@ import { InMemoryUserRepository } from "./auth/users.js";
 import { loadConfig } from "./config.js";
 import { createPool, migrate } from "./db/migrate.js";
 import { PgDriverRepository } from "./drivers/repository.js";
+import { PgOfferRepository } from "./rides/offers.js";
 import { PgRideRepository } from "./rides/repository.js";
 
 const config = loadConfig();
@@ -18,6 +19,7 @@ const app = buildApp(config, {
   users,
   rides: pool ? new PgRideRepository(pool) : undefined,
   drivers: pool ? new PgDriverRepository(pool) : undefined,
+  offers: pool ? new PgOfferRepository(pool) : undefined,
 });
 
 try {
