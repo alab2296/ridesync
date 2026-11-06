@@ -6,6 +6,7 @@ import { parse } from "../validate.js";
 import {
   ActiveRideExistsError,
   DriverNotAvailableError,
+  InvalidRideStateError,
   RideNotFoundError,
   RideTakenError,
   type Ride,
@@ -33,6 +34,19 @@ function publicRide(ride: Ride) {
     completedAt: ride.completedAt,
     cancelReason: ride.cancelReason,
   };
+}
+
+const cancelBody = z.object({ reason: z.string().trim().min(1).max(200).optional() }).optional();
+
+/** Turns the repository's "wrong state" and "not yours" errors into API errors. */
+function rideStepError(err: unknown): never {
+  if (err instanceof RideNotFoundError) {
+    throw new AppError(404, "RIDE_NOT_FOUND", "Ride not found");
+  }
+  if (err instanceof InvalidRideStateError) {
+    throw new AppError(409, "INVALID_RIDE_STATE", "This ride cannot be changed right now");
+  }
+  throw err;
 }
 
 export async function rideRoutes(
@@ -88,6 +102,34 @@ export async function rideRoutes(
         );
       }
       throw err;
+    }
+  });
+
+  app.post("/:id/cancel", { preHandler: requireAuth }, async (request) => {
+    const { id } = parse(rideParams, request.params);
+    const body = parse(cancelBody, request.body);
+    try {
+      return { ride: publicRide(await rides.cancel(id, request.user.sub, body?.reason)) };
+    } catch (err) {
+      rideStepError(err);
+    }
+  });
+
+  app.post("/:id/start", { preHandler: requireRole("driver") }, async (request) => {
+    const { id } = parse(rideParams, request.params);
+    try {
+      return { ride: publicRide(await rides.start(id, request.user.sub)) };
+    } catch (err) {
+      rideStepError(err);
+    }
+  });
+
+  app.post("/:id/complete", { preHandler: requireRole("driver") }, async (request) => {
+    const { id } = parse(rideParams, request.params);
+    try {
+      return { ride: publicRide(await rides.complete(id, request.user.sub)) };
+    } catch (err) {
+      rideStepError(err);
     }
   });
 

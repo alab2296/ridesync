@@ -47,6 +47,13 @@ export class DriverNotAvailableError extends Error {
   }
 }
 
+/** The ride exists but is not in a state where this step is allowed. */
+export class InvalidRideStateError extends Error {
+  constructor() {
+    super("Ride cannot be changed in its current state");
+  }
+}
+
 export interface RideRepository {
   /** Throws ActiveRideExistsError if the passenger already has an active ride. */
   create(input: { passengerId: string; pickup: LatLng; dropoff: LatLng }): Promise<Ride>;
@@ -56,6 +63,15 @@ export interface RideRepository {
    * once, exactly one succeeds and the rest get RideTakenError.
    */
   accept(rideId: string, driverId: string): Promise<Ride>;
+  /**
+   * The passenger or the assigned driver cancels, before the trip starts.
+   * Frees the driver. RideNotFoundError if the user is not part of the ride.
+   */
+  cancel(rideId: string, userId: string, reason?: string): Promise<Ride>;
+  /** The assigned driver begins the trip: ASSIGNED or ARRIVING becomes IN_PROGRESS. */
+  start(rideId: string, driverId: string): Promise<Ride>;
+  /** The assigned driver ends the trip and becomes available again. */
+  complete(rideId: string, driverId: string): Promise<Ride>;
 }
 
 interface RideRow {
@@ -158,6 +174,82 @@ export class PgRideRepository implements RideRepository {
       await client.query("rollback");
       // Backstop: the unique index says a driver cannot hold two active rides.
       if ((err as { code?: string }).code === "23505") throw new DriverNotAvailableError();
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+  async cancel(rideId: string, userId: string, reason?: string): Promise<Ride> {
+    return this.transition(
+      rideId,
+      userId,
+      `update rides set status = 'CANCELLED', cancel_reason = $3
+       where id = $1 and (passenger_id = $2 or driver_id = $2)
+         and status in ('SEARCHING', 'ASSIGNED', 'ARRIVING')
+       returning ${columns}`,
+      [reason ?? null],
+      "(passenger_id = $2 or driver_id = $2)",
+    );
+  }
+
+  async start(rideId: string, driverId: string): Promise<Ride> {
+    return this.transition(
+      rideId,
+      driverId,
+      `update rides set status = 'IN_PROGRESS'
+       where id = $1 and driver_id = $2 and status in ('ASSIGNED', 'ARRIVING')
+       returning ${columns}`,
+      [],
+      "driver_id = $2",
+    );
+  }
+
+  async complete(rideId: string, driverId: string): Promise<Ride> {
+    return this.transition(
+      rideId,
+      driverId,
+      `update rides set status = 'COMPLETED', completed_at = now()
+       where id = $1 and driver_id = $2 and status = 'IN_PROGRESS'
+       returning ${columns}`,
+      [],
+      "driver_id = $2",
+    );
+  }
+
+  /**
+   * Runs one conditional update that moves a ride to its next state. If no row
+   * changed, a second query tells "not yours / not found" apart from "wrong
+   * state". When the ride ends, the driver is freed in the same transaction.
+   */
+  private async transition(
+    rideId: string,
+    userId: string,
+    sql: string,
+    extra: unknown[],
+    mayActOn: string,
+  ): Promise<Ride> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("begin");
+      const { rows } = await client.query<RideRow>(sql, [rideId, userId, ...extra]);
+      if (!rows[0]) {
+        const mine = await client.query(`select 1 from rides where id = $1 and ${mayActOn}`, [
+          rideId,
+          userId,
+        ]);
+        throw mine.rowCount ? new InvalidRideStateError() : new RideNotFoundError();
+      }
+      const ride = toRide(rows[0]);
+      if ((ride.status === "CANCELLED" || ride.status === "COMPLETED") && ride.driverId) {
+        await client.query(
+          "update drivers set status = 'online' where user_id = $1 and status = 'busy'",
+          [ride.driverId],
+        );
+      }
+      await client.query("commit");
+      return ride;
+    } catch (err) {
+      await client.query("rollback");
       throw err;
     } finally {
       client.release();
