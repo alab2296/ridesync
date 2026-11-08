@@ -17,7 +17,7 @@ How to read this:
 - [x] Driver online and offline: `POST /driver/online`, `POST /driver/offline` (Routine)
 - [x] Atomic accept with the concurrency test: `POST /rides/:id/accept` (Live)
 - [x] Offers with a timeout, and decline (Live)
-- [ ] Cancel, start and complete a ride (Routine)
+- [x] Cancel, start and complete a ride (Routine)
 
 ## Phase 2: live location (M3)
 
