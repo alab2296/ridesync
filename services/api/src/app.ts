@@ -1,14 +1,23 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyJwt from "@fastify/jwt";
+import fastifyWebsocket from "@fastify/websocket";
 import { authRoutes } from "./auth/routes.js";
 import { InMemoryUserRepository, type UserRepository } from "./auth/users.js";
 import type { Config } from "./config.js";
 import { driverRoutes } from "./drivers/routes.js";
 import type { DriverRepository } from "./drivers/repository.js";
 import { errorHandler } from "./errors.js";
+import { Hub } from "./ws/hub.js";
+import { wsRoutes } from "./ws/routes.js";
 import { rideRoutes } from "./rides/routes.js";
 import type { RideRepository } from "./rides/repository.js";
 import type { OfferRepository } from "./rides/offers.js";
+
+declare module "fastify" {
+  interface FastifyInstance {
+    hub: Hub;
+  }
+}
 
 interface Deps {
   users: UserRepository;
@@ -28,6 +37,10 @@ export function buildApp(
 
   app.setErrorHandler(errorHandler);
   app.register(fastifyJwt, { secret: config.JWT_SECRET });
+
+  app.register(fastifyWebsocket);
+  app.decorate("hub", new Hub());
+  app.register(wsRoutes);
 
   app.get("/health", async () => ({
     status: "ok",
