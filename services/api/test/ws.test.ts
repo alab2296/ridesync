@@ -74,4 +74,26 @@ describe("websocket gateway", () => {
     expect(await next).toEqual({ type: "ride_status", rideId: "r1", status: "accepted" });
     socket.close();
   });
+
+  it("drops a connection that stops answering pings", async () => {
+    app.hub.startHeartbeat(40);
+    // A raw client that never auto-replies to pings.
+    const socket = new WebSocket(`${base}/ws?token=${tokenFor("user-4")}`, { autoPong: false });
+    await new Promise((r) => socket.once("message", r));
+    expect(app.hub.connectionCount("user-4")).toBe(1);
+    await new Promise((r) => socket.once("close", r));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(app.hub.connectionCount("user-4")).toBe(0);
+    app.hub.startHeartbeat(30_000);
+  });
+
+  it("keeps a connection that answers pings", async () => {
+    app.hub.startHeartbeat(40);
+    const socket = new WebSocket(`${base}/ws?token=${tokenFor("user-5")}`);
+    await new Promise((r) => socket.once("message", r));
+    await new Promise((r) => setTimeout(r, 300));
+    expect(app.hub.connectionCount("user-5")).toBe(1);
+    socket.close();
+    app.hub.startHeartbeat(30_000);
+  });
 });

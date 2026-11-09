@@ -39,7 +39,10 @@ export function buildApp(
   app.register(fastifyJwt, { secret: config.JWT_SECRET });
 
   app.register(fastifyWebsocket);
-  app.decorate("hub", new Hub());
+  const hub = new Hub();
+  hub.startHeartbeat(30_000);
+  app.decorate("hub", hub);
+  app.addHook("onClose", async () => hub.stopHeartbeat());
   app.register(wsRoutes);
 
   app.get("/health", async () => ({
