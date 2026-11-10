@@ -9,6 +9,8 @@ import { errorHandler } from "./errors.js";
 import { rideRoutes } from "./rides/routes.js";
 import type { RideRepository } from "./rides/repository.js";
 import type { OfferRepository } from "./rides/offers.js";
+import { wsGateway } from "./ws/gateway.js";
+import { Hub } from "./ws/hub.js";
 
 interface Deps {
   users: UserRepository;
@@ -18,6 +20,8 @@ interface Deps {
   drivers?: DriverRepository;
   /** Ride offers (decline) also need the database. */
   offers?: OfferRepository;
+  /** Open sockets by user; pass one in to push events from other code. */
+  hub?: Hub;
 }
 
 export function buildApp(
@@ -39,6 +43,8 @@ export function buildApp(
     app.register(rideRoutes, { prefix: "/rides", rides: deps.rides, offers: deps.offers });
 
   if (deps.drivers) app.register(driverRoutes, { prefix: "/driver", drivers: deps.drivers });
+
+  app.register(wsGateway, { hub: deps.hub ?? new Hub() });
 
   return app;
 }
