@@ -21,7 +21,7 @@ How to read this:
 
 ## Phase 2: live location (M3)
 
-- [ ] WebSocket gateway with JWT auth (Live)
+- [x] WebSocket gateway with JWT auth (Live)
 - [ ] Driver location ingest and the Redis geo index (Live)
 - [ ] Nearby-driver search used by the matcher (Live)
 - [ ] Passenger live stream: `driver_location` and `ride_status` events (Routine)
