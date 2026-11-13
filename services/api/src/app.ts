@@ -6,6 +6,7 @@ import type { Config } from "./config.js";
 import { driverRoutes } from "./drivers/routes.js";
 import type { DriverRepository } from "./drivers/repository.js";
 import { errorHandler } from "./errors.js";
+import type { LocationStore } from "./location/store.js";
 import { rideRoutes } from "./rides/routes.js";
 import type { RideRepository } from "./rides/repository.js";
 import type { OfferRepository } from "./rides/offers.js";
@@ -22,6 +23,8 @@ interface Deps {
   offers?: OfferRepository;
   /** Open sockets by user; pass one in to push events from other code. */
   hub?: Hub;
+  /** Latest driver positions (Redis). Needed for drivers to send locations. */
+  locations?: LocationStore;
 }
 
 export function buildApp(
@@ -44,7 +47,7 @@ export function buildApp(
 
   if (deps.drivers) app.register(driverRoutes, { prefix: "/driver", drivers: deps.drivers });
 
-  app.register(wsGateway, { hub: deps.hub ?? new Hub() });
+  app.register(wsGateway, { hub: deps.hub ?? new Hub(), locations: deps.locations });
 
   return app;
 }
