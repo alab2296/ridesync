@@ -15,6 +15,12 @@ export interface DriverRepository {
    * Throws DriverBusyError if the driver is currently busy with a ride.
    */
   setAvailability(userId: string, status: "online" | "offline"): Promise<DriverStatus>;
+  /**
+   * Of the given drivers, the ones that can be offered this ride: online, and
+   * not already sent an offer for it (a driver gets one offer per ride).
+   * The result keeps the order of driverIds.
+   */
+  offerable(driverIds: string[], rideId: string): Promise<string[]>;
 }
 
 export class PgDriverRepository implements DriverRepository {
@@ -32,5 +38,21 @@ export class PgDriverRepository implements DriverRepository {
     );
     if (!rows[0]) throw new DriverBusyError();
     return rows[0].status;
+  }
+
+  async offerable(driverIds: string[], rideId: string): Promise<string[]> {
+    if (driverIds.length === 0) return [];
+    const { rows } = await this.pool.query<{ user_id: string }>(
+      `select d.user_id
+       from drivers d
+       where d.user_id = any($1::uuid[])
+         and d.status = 'online'
+         and not exists (
+           select 1 from ride_offers o where o.ride_id = $2 and o.driver_id = d.user_id
+         )`,
+      [driverIds, rideId],
+    );
+    const ok = new Set(rows.map((r) => r.user_id));
+    return driverIds.filter((id) => ok.has(id));
   }
 }
