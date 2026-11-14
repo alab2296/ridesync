@@ -33,6 +33,8 @@ export function buildApp(
 ): FastifyInstance {
   const app = Fastify({ logger: { level: config.LOG_LEVEL } });
 
+  const hub = deps.hub ?? new Hub();
+
   app.setErrorHandler(errorHandler);
   app.register(fastifyJwt, { secret: config.JWT_SECRET });
 
@@ -43,11 +45,11 @@ export function buildApp(
 
   app.register(authRoutes, { prefix: "/auth", users: deps.users });
   if (deps.rides)
-    app.register(rideRoutes, { prefix: "/rides", rides: deps.rides, offers: deps.offers });
+    app.register(rideRoutes, { prefix: "/rides", rides: deps.rides, offers: deps.offers, hub });
 
   if (deps.drivers) app.register(driverRoutes, { prefix: "/driver", drivers: deps.drivers });
 
-  app.register(wsGateway, { hub: deps.hub ?? new Hub(), locations: deps.locations });
+  app.register(wsGateway, { hub, locations: deps.locations });
 
   return app;
 }
