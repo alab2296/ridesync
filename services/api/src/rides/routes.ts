@@ -13,6 +13,7 @@ import {
   type RideRepository,
 } from "./repository.js";
 import { OfferNotFoundError, type OfferRepository } from "./offers.js";
+import type { Hub } from "../ws/hub.js";
 
 const place = z.object({
   lat: z.number().min(-90).max(90),
@@ -51,9 +52,18 @@ function rideStepError(err: unknown): never {
 
 export async function rideRoutes(
   app: FastifyInstance,
-  opts: { rides: RideRepository; offers?: OfferRepository },
+  opts: { rides: RideRepository; offers?: OfferRepository; hub?: Hub },
 ): Promise<void> {
-  const { rides, offers } = opts;
+  const { rides, offers, hub } = opts;
+
+  /** Tells the passenger (and the driver, if someone else caused it) the ride moved on. */
+  function announce(ride: Ride, actorId: string): void {
+    if (!hub) return;
+    const data = { rideId: ride.id, status: ride.status, driverId: ride.driverId };
+    for (const userId of [ride.passengerId, ride.driverId]) {
+      if (userId && userId !== actorId) hub.send(userId, "ride_status", data);
+    }
+  }
 
   app.post("/", { preHandler: requireRole("passenger") }, async (request, reply) => {
     const body = parse(createRideBody, request.body);
@@ -86,7 +96,9 @@ export async function rideRoutes(
   app.post("/:id/accept", { preHandler: requireRole("driver") }, async (request) => {
     const { id } = parse(rideParams, request.params);
     try {
-      return { ride: publicRide(await rides.accept(id, request.user.sub)) };
+      const ride = await rides.accept(id, request.user.sub);
+      announce(ride, request.user.sub);
+      return { ride: publicRide(ride) };
     } catch (err) {
       if (err instanceof RideNotFoundError) {
         throw new AppError(404, "RIDE_NOT_FOUND", "Ride not found");
@@ -109,7 +121,9 @@ export async function rideRoutes(
     const { id } = parse(rideParams, request.params);
     const body = parse(cancelBody, request.body);
     try {
-      return { ride: publicRide(await rides.cancel(id, request.user.sub, body?.reason)) };
+      const ride = await rides.cancel(id, request.user.sub, body?.reason);
+      announce(ride, request.user.sub);
+      return { ride: publicRide(ride) };
     } catch (err) {
       rideStepError(err);
     }
@@ -118,7 +132,9 @@ export async function rideRoutes(
   app.post("/:id/start", { preHandler: requireRole("driver") }, async (request) => {
     const { id } = parse(rideParams, request.params);
     try {
-      return { ride: publicRide(await rides.start(id, request.user.sub)) };
+      const ride = await rides.start(id, request.user.sub);
+      announce(ride, request.user.sub);
+      return { ride: publicRide(ride) };
     } catch (err) {
       rideStepError(err);
     }
@@ -127,7 +143,9 @@ export async function rideRoutes(
   app.post("/:id/complete", { preHandler: requireRole("driver") }, async (request) => {
     const { id } = parse(rideParams, request.params);
     try {
-      return { ride: publicRide(await rides.complete(id, request.user.sub)) };
+      const ride = await rides.complete(id, request.user.sub);
+      announce(ride, request.user.sub);
+      return { ride: publicRide(ride) };
     } catch (err) {
       rideStepError(err);
     }

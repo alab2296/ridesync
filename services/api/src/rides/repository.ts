@@ -58,6 +58,8 @@ export interface RideRepository {
   /** Throws ActiveRideExistsError if the passenger already has an active ride. */
   create(input: { passengerId: string; pickup: LatLng; dropoff: LatLng }): Promise<Ride>;
   findById(id: string): Promise<Ride | undefined>;
+  /** The ride a driver is currently serving (ASSIGNED, ARRIVING or IN_PROGRESS), if any. */
+  findActiveForDriver(driverId: string): Promise<Ride | undefined>;
   /**
    * A driver takes a ride that is still SEARCHING. When several drivers try at
    * once, exactly one succeeds and the rest get RideTakenError.
@@ -138,6 +140,16 @@ export class PgRideRepository implements RideRepository {
     const { rows } = await this.pool.query<RideRow>(`select ${columns} from rides where id = $1`, [
       id,
     ]);
+    return rows[0] && toRide(rows[0]);
+  }
+
+  async findActiveForDriver(driverId: string): Promise<Ride | undefined> {
+    const { rows } = await this.pool.query<RideRow>(
+      `select ${columns} from rides
+       where driver_id = $1 and status in ('ASSIGNED', 'ARRIVING', 'IN_PROGRESS')
+       limit 1`,
+      [driverId],
+    );
     return rows[0] && toRide(rows[0]);
   }
 

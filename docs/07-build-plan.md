@@ -24,7 +24,7 @@ How to read this:
 - [x] WebSocket gateway with JWT auth (Live)
 - [x] Driver location ingest and the Redis geo index (Live)
 - [x] Nearby-driver search used by the matcher (Live)
-- [ ] Passenger live stream: `driver_location` and `ride_status` events (Routine)
+- [x] Passenger live stream: `driver_location` and `ride_status` events (Routine)
 
 ## Phase 3: proof (M4)
 

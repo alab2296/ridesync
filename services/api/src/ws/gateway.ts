@@ -3,12 +3,15 @@ import type { FastifyInstance } from "fastify";
 import { AppError } from "../errors.js";
 import { z } from "zod";
 import type { LocationStore } from "../location/store.js";
+import type { RideRepository } from "../rides/repository.js";
 import type { Hub } from "./hub.js";
 
 interface Options {
   hub: Hub;
   /** Where driver location messages are saved. Without it they are refused. */
   locations?: LocationStore;
+  /** Lets a driver's position be forwarded to the passenger of their active ride. */
+  rides?: RideRepository;
 }
 
 const locationSchema = z.object({
@@ -69,6 +72,12 @@ export async function wsGateway(app: FastifyInstance, opts: Options): Promise<vo
           }
           const applied = await opts.locations.update(sub, loc.data);
           reply("location_ack", { ts: loc.data.ts, applied });
+          if (applied && opts.rides) {
+            const ride = await opts.rides.findActiveForDriver(sub);
+            if (ride) {
+              opts.hub.send(ride.passengerId, "driver_location", { rideId: ride.id, ...loc.data });
+            }
+          }
         } catch (err) {
           if (err instanceof SyntaxError) return fail("BAD_MESSAGE", "Message is not valid JSON");
           app.log.error(err, "websocket message failed");
