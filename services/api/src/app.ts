@@ -49,7 +49,7 @@ export function buildApp(
 
   if (deps.drivers) app.register(driverRoutes, { prefix: "/driver", drivers: deps.drivers });
 
-  app.register(wsGateway, { hub, locations: deps.locations });
+  app.register(wsGateway, { hub, locations: deps.locations, rides: deps.rides });
 
   return app;
 }
