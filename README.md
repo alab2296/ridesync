@@ -40,3 +40,11 @@ Checks run in CI on every push: format, lint, typecheck, test, build.
 ## Licence
 
 MIT
+
+## Driver simulator
+
+`tools/simulator` signs up fake drivers, sets them online and sends a location over the WebSocket every few seconds. With the API running:
+
+```bash
+DRIVERS=250 INTERVAL_MS=3000 DURATION_S=60 npx pnpm@10.28.0 --filter @ridesync/simulator start
+```
