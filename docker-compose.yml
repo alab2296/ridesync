@@ -1,6 +1,7 @@
 services:
   db:
-    image: postgis/postgis:16-3.4
+    build: ./infra/db
+    image: ridesync-db:16-postgis3
     environment:
       POSTGRES_USER: ridesync
       POSTGRES_PASSWORD: ridesync

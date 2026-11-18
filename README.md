@@ -32,7 +32,7 @@ pnpm install
 cp .env.example .env
 pnpm test          # unit tests
 pnpm --filter @ridesync/api dev   # API on http://localhost:3000/health
-docker compose up --build         # API + PostGIS + Redis
+docker compose up --build         # API + PostGIS + Redis (the db image is built locally and runs natively on arm64 and amd64)
 ```
 
 Checks run in CI on every push: format, lint, typecheck, test, build.
