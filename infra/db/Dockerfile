@@ -7,8 +7,3 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY init-postgis.sh /docker-entrypoint-initdb.d/10-postgis.sh
-
-COPY init-postgis.sh /docker-entrypoint-initdb.d/10_postgis.sh
-
-# The postgis/postgis image enables the extension in the default database on first start; do the same.
-COPY init-postgis.sql /docker-entrypoint-initdb.d/10-postgis.sql
