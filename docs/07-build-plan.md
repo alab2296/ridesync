@@ -29,7 +29,7 @@ How to read this:
 ## Phase 3: proof (M4)
 
 - [x] Simulator for 250 drivers sending a location every 3 seconds (Routine)
-- [ ] Native arm64 PostGIS image for local runs (Routine)
+- [x] Native arm64 PostGIS image for local runs (Routine)
 - [ ] k6 load test, with the results table in the README (Routine)
 - [ ] Tag `v0.1.0`
 
