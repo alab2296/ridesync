@@ -1,5 +1,5 @@
 // k6 scenario: N drivers, each holding one WebSocket and sending a location every few seconds.
-// Run: k6 run -e DRIVERS=250 -e DURATION=60s tools/k6/drivers.js
+// Run: k6 run -e DRIVERS=250 -e DURATION_S=60 tools/k6/drivers.js
 import http from "k6/http";
 import ws from "k6/ws";
 import { check, sleep } from "k6";
@@ -7,7 +7,7 @@ import { Counter, Trend } from "k6/metrics";
 
 const API_URL = __ENV.API_URL || "http://localhost:3000";
 const DRIVERS = Number(__ENV.DRIVERS || 250);
-const DURATION = __ENV.DURATION || "60s";
+const DURATION_S = Number(__ENV.DURATION_S || 60);
 const INTERVAL_MS = Number(__ENV.INTERVAL_MS || 3000);
 const RUN_ID = __ENV.RUN_ID || Date.now().toString(36);
 const PASSWORD = "loadtest-password";
@@ -19,9 +19,10 @@ const acked = new Counter("locations_acked");
 export const options = {
   scenarios: {
     drivers: {
-      executor: "constant-vus",
+      executor: "per-vu-iterations",
       vus: DRIVERS,
-      duration: DURATION,
+      iterations: 1,
+      maxDuration: `${DURATION_S + 60}s`,
     },
   },
   setupTimeout: "300s",
@@ -76,7 +77,7 @@ export default function (data) {
         acked.add(1);
       }
     });
-    socket.setTimeout(() => socket.close(), 30000 + Math.random() * 1000);
+    socket.setTimeout(() => socket.close(), DURATION_S * 1000);
     socket.setInterval(() => {
       lat += (Math.random() - 0.5) * 0.0005;
       lng += (Math.random() - 0.5) * 0.0005;
