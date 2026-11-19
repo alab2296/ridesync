@@ -30,7 +30,7 @@ How to read this:
 
 - [x] Simulator for 250 drivers sending a location every 3 seconds (Routine)
 - [x] Native arm64 PostGIS image for local runs (Routine)
-- [ ] k6 load test, with the results table in the README (Routine)
+- [x] k6 load test, with the results table in the README (Routine)
 - [ ] Tag `v0.1.0`
 
 ## Phase 4: admin and polish (M6, web only)

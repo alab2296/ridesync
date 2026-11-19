@@ -48,3 +48,17 @@ MIT
 ```bash
 DRIVERS=250 INTERVAL_MS=3000 DURATION_S=60 npx pnpm@10.28.0 --filter @ridesync/simulator start
 ```
+
+## Load test results
+
+`tools/k6/drivers.js` holds 250 WebSocket connections open for 60 seconds, each sending a location every 3 seconds (see [tools/k6/README.md](tools/k6/README.md)). One API process, PostGIS and Redis ran in Docker on an Apple Silicon laptop (arm64 database image).
+
+| Metric                | Result | Target   |
+| --------------------- | ------ | -------- |
+| Drivers connected     | 250    | 250      |
+| Locations sent        | 4885   | -        |
+| Location ack p95      | 25 ms  | < 200 ms |
+| WebSocket connect p95 | 17 ms  | < 1 s    |
+| Successful upgrades   | 100%   | > 99%    |
+
+Locations sent is slightly higher than acks received because the last message of some drivers is still in flight when the sockets close.
