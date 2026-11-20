@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyJwt from "@fastify/jwt";
+import { adminRoutes } from "./admin/routes.js";
 import { authRoutes } from "./auth/routes.js";
 import { InMemoryUserRepository, type UserRepository } from "./auth/users.js";
 import type { Config } from "./config.js";
@@ -48,6 +49,8 @@ export function buildApp(
     app.register(rideRoutes, { prefix: "/rides", rides: deps.rides, offers: deps.offers, hub });
 
   if (deps.drivers) app.register(driverRoutes, { prefix: "/driver", drivers: deps.drivers });
+
+  if (deps.drivers) app.register(adminRoutes, { prefix: "/admin", drivers: deps.drivers });
 
   app.register(wsGateway, { hub, locations: deps.locations, rides: deps.rides });
 

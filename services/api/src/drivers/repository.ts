@@ -9,6 +9,14 @@ export class DriverBusyError extends Error {
   }
 }
 
+export interface DriverSummary {
+  id: string;
+  name: string;
+  status: DriverStatus;
+  vehiclePlate: string | null;
+  vehicleModel: string | null;
+}
+
 export interface DriverRepository {
   /**
    * Sets the driver's availability and returns the new status. Safe to repeat.
@@ -21,6 +29,8 @@ export interface DriverRepository {
    * The result keeps the order of driverIds.
    */
   offerable(driverIds: string[], rideId: string): Promise<string[]>;
+  /** All drivers for the admin view, oldest account first, optionally of one status. */
+  list(status?: DriverStatus): Promise<DriverSummary[]>;
 }
 
 export class PgDriverRepository implements DriverRepository {
@@ -54,5 +64,29 @@ export class PgDriverRepository implements DriverRepository {
     );
     const ok = new Set(rows.map((r) => r.user_id));
     return driverIds.filter((id) => ok.has(id));
+  }
+
+  async list(status?: DriverStatus): Promise<DriverSummary[]> {
+    const { rows } = await this.pool.query<{
+      id: string;
+      name: string;
+      status: DriverStatus;
+      vehicle_plate: string | null;
+      vehicle_model: string | null;
+    }>(
+      `select d.user_id as id, u.name, d.status, d.vehicle_plate, d.vehicle_model
+       from drivers d
+       join users u on u.id = d.user_id
+       where $1::driver_status is null or d.status = $1::driver_status
+       order by u.created_at, u.id`,
+      [status ?? null],
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      status: r.status,
+      vehiclePlate: r.vehicle_plate,
+      vehicleModel: r.vehicle_model,
+    }));
   }
 }
