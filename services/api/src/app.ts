@@ -50,7 +50,12 @@ export function buildApp(
 
   if (deps.drivers) app.register(driverRoutes, { prefix: "/driver", drivers: deps.drivers });
 
-  if (deps.drivers) app.register(adminRoutes, { prefix: "/admin", drivers: deps.drivers });
+  if (deps.drivers)
+    app.register(adminRoutes, {
+      prefix: "/admin",
+      drivers: deps.drivers,
+      rides: deps.rides,
+    });
 
   app.register(wsGateway, { hub, locations: deps.locations, rides: deps.rides });
 
