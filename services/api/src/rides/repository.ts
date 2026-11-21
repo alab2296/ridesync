@@ -74,6 +74,8 @@ export interface RideRepository {
   start(rideId: string, driverId: string): Promise<Ride>;
   /** The assigned driver ends the trip and becomes available again. */
   complete(rideId: string, driverId: string): Promise<Ride>;
+  /** Rides for the admin view, newest first, optionally of one status. */
+  list(filter: { status?: RideStatus; limit: number; offset: number }): Promise<Ride[]>;
 }
 
 interface RideRow {
@@ -214,6 +216,18 @@ export class PgRideRepository implements RideRepository {
       [],
       "driver_id = $2",
     );
+  }
+
+  async list(filter: { status?: RideStatus; limit: number; offset: number }): Promise<Ride[]> {
+    const { rows } = await this.pool.query<RideRow>(
+      `select ${columns}
+       from rides
+       where $1::ride_status is null or status = $1::ride_status
+       order by requested_at desc, id
+       limit $2 offset $3`,
+      [filter.status ?? null, filter.limit, filter.offset],
+    );
+    return rows.map(toRide);
   }
 
   async complete(rideId: string, driverId: string): Promise<Ride> {
