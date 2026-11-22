@@ -36,7 +36,7 @@ How to read this:
 ## Phase 4: admin and polish (M6, web only)
 
 - [x] Admin endpoints: `GET /admin/drivers`, `GET /admin/rides` (Routine)
-- [ ] Admin web with Vite and React: trips list (Routine)
+- [x] Admin web with Vite and React: trips list (Routine)
 - [ ] Admin web: live map of online drivers (Routine)
 - [ ] OpenAPI file, README, architecture diagram (Routine)
 - [ ] Tag `v1.0.0`
