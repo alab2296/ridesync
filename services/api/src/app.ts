@@ -55,6 +55,7 @@ export function buildApp(
       prefix: "/admin",
       drivers: deps.drivers,
       rides: deps.rides,
+      locations: deps.locations,
     });
 
   app.register(wsGateway, { hub, locations: deps.locations, rides: deps.rides });
