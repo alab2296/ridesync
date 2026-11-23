@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { login } from "./api";
+import { DriversMap } from "./DriversMap";
 import { TripsPage } from "./TripsPage";
 
 export function App() {
@@ -21,7 +22,10 @@ export function App() {
     <main>
       <h1>RideSync Admin</h1>
       {token ? (
-        <TripsPage token={token} />
+        <>
+          <DriversMap token={token} />
+          <TripsPage token={token} />
+        </>
       ) : (
         <form onSubmit={onSubmit}>
           <input name="email" type="email" placeholder="Email" required />{" "}

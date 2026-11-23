@@ -61,3 +61,19 @@ export async function listRides(
   const { rides } = await request<{ rides: Ride[] }>(`/admin/rides${query}`, {}, token);
   return rides;
 }
+
+export interface DriverLocation {
+  id: string;
+  name: string;
+  status: "online" | "busy";
+  location: LatLng & { heading: number; ts: number };
+}
+
+export async function listDriverLocations(token: string): Promise<DriverLocation[]> {
+  const { drivers } = await request<{ drivers: DriverLocation[] }>(
+    "/admin/drivers/locations",
+    {},
+    token,
+  );
+  return drivers;
+}
