@@ -1,4 +1,6 @@
-# API outline (to become an OpenAPI file in M1)
+# API outline
+
+The full contract is in [openapi.yaml](openapi.yaml). This page is the short overview.
 
 | Method | Path                            | Role             | Purpose                           |
 | ------ | ------------------------------- | ---------------- | --------------------------------- |

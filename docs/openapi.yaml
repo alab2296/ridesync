@@ -1,0 +1,435 @@
+openapi: 3.0.3
+info:
+  title: RideSync API
+  version: 1.0.0
+  description: >
+    Taxi-hailing backend. Passengers request rides, drivers accept them, admins
+    watch the fleet. Live updates go over WebSocket (see docs/04-api-outline.md).
+servers:
+  - url: http://localhost:3000
+security:
+  - bearerAuth: []
+tags:
+  - name: auth
+  - name: rides
+  - name: driver
+  - name: admin
+paths:
+  /health:
+    get:
+      summary: Liveness check
+      security: []
+      responses:
+        "200":
+          description: The API is up
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Create a passenger or driver account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8, maxLength: 200 }
+                role: { type: string, enum: [passenger, driver], default: passenger }
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409":
+          description: EMAIL_TAKEN
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Log in and get a JWT (valid for one hour)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401":
+          description: INVALID_CREDENTIALS
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: The logged-in user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Error" }
+  /rides:
+    post:
+      tags: [rides]
+      summary: Request a ride (passenger)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pickup, dropoff]
+              properties:
+                pickup: { $ref: "#/components/schemas/LatLng" }
+                dropoff: { $ref: "#/components/schemas/LatLng" }
+      responses:
+        "201":
+          description: Ride created in SEARCHING status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RideResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409":
+          description: ACTIVE_RIDE_EXISTS
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /rides/{id}:
+    get:
+      tags: [rides]
+      summary: Ride status (its passenger, its driver or an admin)
+      parameters: [{ $ref: "#/components/parameters/RideId" }]
+      responses:
+        "200":
+          description: The ride
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RideResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404":
+          description: RIDE_NOT_FOUND (also returned when the ride is not yours)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /rides/{id}/accept:
+    post:
+      tags: [rides]
+      summary: Accept a ride (driver). Atomic, so only one driver wins.
+      parameters: [{ $ref: "#/components/parameters/RideId" }]
+      responses:
+        "200":
+          description: You got the ride
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RideResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409":
+          description: RIDE_TAKEN or DRIVER_NOT_AVAILABLE
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /rides/{id}/decline:
+    post:
+      tags: [rides]
+      summary: Decline an open offer (driver)
+      parameters: [{ $ref: "#/components/parameters/RideId" }]
+      responses:
+        "200":
+          description: Offer declined
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  offer:
+                    type: object
+                    properties:
+                      rideId: { type: string, format: uuid }
+                      result: { type: string }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404":
+          description: OFFER_NOT_FOUND
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /rides/{id}/cancel:
+    post:
+      tags: [rides]
+      summary: Cancel a ride (passenger or driver)
+      parameters: [{ $ref: "#/components/parameters/RideId" }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 200 }
+      responses:
+        "200":
+          description: Ride cancelled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RideResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409":
+          description: INVALID_RIDE_STATE
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /rides/{id}/start:
+    post:
+      tags: [rides]
+      summary: Start the trip (driver)
+      parameters: [{ $ref: "#/components/parameters/RideId" }]
+      responses:
+        "200":
+          description: Ride is IN_PROGRESS
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RideResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409":
+          description: INVALID_RIDE_STATE
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /rides/{id}/complete:
+    post:
+      tags: [rides]
+      summary: Finish the trip (driver)
+      parameters: [{ $ref: "#/components/parameters/RideId" }]
+      responses:
+        "200":
+          description: Ride is COMPLETED
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RideResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409":
+          description: INVALID_RIDE_STATE
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /driver/online:
+    post:
+      tags: [driver]
+      summary: Go online (driver). Safe to repeat.
+      responses:
+        "200": { $ref: "#/components/responses/DriverStatus" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409":
+          description: DRIVER_BUSY
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /driver/offline:
+    post:
+      tags: [driver]
+      summary: Go offline (driver). Safe to repeat.
+      responses:
+        "200": { $ref: "#/components/responses/DriverStatus" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409":
+          description: DRIVER_BUSY
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /admin/drivers:
+    get:
+      tags: [admin]
+      summary: All drivers, oldest account first
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/DriverStatus" }
+      responses:
+        "200":
+          description: Drivers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  drivers:
+                    type: array
+                    items: { $ref: "#/components/schemas/DriverSummary" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+  /admin/drivers/locations:
+    get:
+      tags: [admin]
+      summary: Online and busy drivers with their latest known position
+      responses:
+        "200":
+          description: Drivers with a fresh location reading
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  drivers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        status: { $ref: "#/components/schemas/DriverStatus" }
+                        location: { $ref: "#/components/schemas/DriverLocation" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+  /admin/rides:
+    get:
+      tags: [admin]
+      summary: Trips, optionally filtered by status
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/RideStatus" }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        "200":
+          description: Rides
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rides:
+                    type: array
+                    items: { $ref: "#/components/schemas/Ride" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    RideId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Error:
+      description: Error (see the code field). 400 VALIDATION_ERROR, 401 UNAUTHORIZED, 403 FORBIDDEN.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    DriverStatus:
+      description: New availability
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status: { $ref: "#/components/schemas/DriverStatus" }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string, example: RIDE_TAKEN }
+            message: { type: string }
+    LatLng:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lng: { type: number, minimum: -180, maximum: 180 }
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        role: { type: string, enum: [passenger, driver, admin] }
+        name: { type: string }
+        email: { type: string, format: email }
+    AuthResult:
+      type: object
+      properties:
+        user: { $ref: "#/components/schemas/User" }
+        token: { type: string }
+    RideStatus:
+      type: string
+      enum: [SEARCHING, ASSIGNED, ARRIVING, IN_PROGRESS, COMPLETED, CANCELLED]
+    DriverStatus:
+      type: string
+      enum: [offline, online, busy]
+    Ride:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/RideStatus" }
+        pickup: { $ref: "#/components/schemas/LatLng" }
+        dropoff: { $ref: "#/components/schemas/LatLng" }
+        driverId: { type: string, format: uuid, nullable: true }
+        requestedAt: { type: string, format: date-time }
+        assignedAt: { type: string, format: date-time, nullable: true }
+        completedAt: { type: string, format: date-time, nullable: true }
+        cancelReason: { type: string, nullable: true }
+    RideResult:
+      type: object
+      properties:
+        ride: { $ref: "#/components/schemas/Ride" }
+    DriverSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        status: { $ref: "#/components/schemas/DriverStatus" }
+        vehiclePlate: { type: string, nullable: true }
+        vehicleModel: { type: string, nullable: true }
+    DriverLocation:
+      type: object
+      properties:
+        lat: { type: number }
+        lng: { type: number }
+        heading: { type: number }
+        ts: { type: integer, description: Milliseconds since the epoch }
