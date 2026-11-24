@@ -4,6 +4,21 @@
 
 Passenger app, Driver app and Admin web talk to the RideSync API (REST + WebSocket). The API uses PostgreSQL/PostGIS, Redis and an external map/routing provider.
 
+```mermaid
+flowchart LR
+  P[Passenger app] -->|REST + WebSocket| API
+  D[Driver app] -->|REST + WebSocket| API
+  A[Admin web] -->|REST| API
+  subgraph API[RideSync API - Fastify]
+    R[Ride routes]
+    W[WebSocket gateway]
+    M[Matcher]
+  end
+  API -->|rides, users, drivers| PG[(PostgreSQL + PostGIS)]
+  API -->|geo index, offers, pub/sub| RD[(Redis)]
+  S[Simulator and k6] -->|fake drivers| API
+```
+
 ## Containers (C4 level 2)
 
 - **apps/passenger, apps/driver**: React Native, TypeScript.
