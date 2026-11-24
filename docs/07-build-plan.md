@@ -38,7 +38,7 @@ How to read this:
 - [x] Admin endpoints: `GET /admin/drivers`, `GET /admin/rides` (Routine)
 - [x] Admin web with Vite and React: trips list (Routine)
 - [x] Admin web: live map of online drivers (Routine)
-- [ ] OpenAPI file, README, architecture diagram (Routine)
+- [x] OpenAPI file, README, architecture diagram (Routine)
 - [ ] Tag `v1.0.0`
 
 ## Notes

@@ -1,7 +1,7 @@
 # RideSync
 
 Real-time taxi-hailing platform: passenger app, driver app, admin web, Node.js backend.
-**Status:** M2 rides core in progress. Done so far: API skeleton, tooling, CI, accounts with roles, database schema, ride requests. Next: driver availability and accepting rides. Portfolio project, not production software.
+**Status:** feature-complete backend and admin web (rides, offers, live location, load test). Remaining: final documentation and the `v1.0.0` tag. Portfolio project, not production software.
 
 ## Problems this project demonstrates
 
@@ -9,7 +9,7 @@ Real-time taxi-hailing platform: passenger app, driver app, admin web, Node.js b
 2. Reliable background location on iOS and Android.
 3. A backend that handles 250 drivers sending a location every 3 seconds.
 
-Each one will be backed by an automated test or a load-test result in this repo.
+Each one is backed by an automated test or a load-test result in this repo.
 
 ## Documentation
 
@@ -18,10 +18,25 @@ Each one will be backed by an automated test or a load-test result in this repo.
 - [Architecture](docs/02-architecture.md)
 - [Data model](docs/03-data-model.md)
 - [API outline](docs/04-api-outline.md)
+- [OpenAPI description](docs/openapi.yaml)
+- [OpenAPI description](docs/openapi.yaml)
 - [Backlog and milestones](docs/05-backlog.md)
 - [Engineering process](docs/06-engineering-process.md)
 - [Build plan](docs/07-build-plan.md)
 - [Decisions (ADRs)](docs/decisions/)
+
+## Architecture
+
+```mermaid
+flowchart LR
+  P[Passenger app] -->|REST + WebSocket| API
+  D[Driver app] -->|REST + WebSocket| API
+  A[Admin web] -->|REST| API
+  API[RideSync API<br/>Fastify] --> PG[(PostgreSQL + PostGIS)]
+  API --> R[(Redis<br/>geo index, offers, pub/sub)]
+```
+
+Commands go over REST, live updates over WebSocket. Postgres holds users, drivers and rides. Redis holds the latest driver positions and offer state. More detail in [docs/02-architecture.md](docs/02-architecture.md).
 
 ## How to run
 
