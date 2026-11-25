@@ -39,7 +39,7 @@ How to read this:
 - [x] Admin web with Vite and React: trips list (Routine)
 - [x] Admin web: live map of online drivers (Routine)
 - [x] OpenAPI file, README, architecture diagram (Routine)
-- [ ] Tag `v1.0.0`
+- [x] Tag `v1.0.0`
 
 ## Notes
 
